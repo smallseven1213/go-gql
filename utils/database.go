@@ -15,8 +15,8 @@ type Database struct {
 var DB *gorm.DB
 
 // Opening a database and save the reference to `Database` struct.
-func Init() *gorm.DB {
-	dsn := "root:123456@tcp(127.0.0.1:3306)/sys?charset=utf8mb4&parseTime=True&loc=Local"
+func SQLDBInit() *gorm.DB {
+	dsn := "root:123456@tcp(mysql:3306)/sys?charset=utf8mb4&parseTime=True&loc=Local"
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		fmt.Println("db err: ", err)
@@ -29,6 +29,6 @@ func Init() *gorm.DB {
 }
 
 // Using this function to get a connection, you can create your connection pool here.
-func GetDB() *gorm.DB {
+func GetSQLDB() *gorm.DB {
 	return DB
 }

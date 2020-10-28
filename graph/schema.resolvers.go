@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"gql/graph/generated"
 	"gql/graph/model"
-	dbmodel "gql/mysqldb/models"
+	mysqldbmodel "gql/mysqldb/model"
 	"gql/utils"
 	"strconv"
 )
 
 func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	db := utils.GetDB()
-	todo := dbmodel.Todo{Text: input.Text}
+	db := utils.GetSQLDB()
+	todo := mysqldbmodel.Todo{Text: input.Text}
 
 	db.Create(&todo)
 	fmt.Printf("%+v\n", todo)
@@ -28,7 +28,7 @@ func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) 
 }
 
 func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	db := utils.GetDB()
+	db := utils.GetSQLDB()
 	db.Find(&todos)
 
 	var result []*model.Todo
@@ -45,8 +45,8 @@ func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
 }
 
 func (r *queryResolver) Todo(ctx context.Context, input *string) (*model.Todo, error) {
-	db := utils.GetDB()
-	todo := dbmodel.Todo{}
+	db := utils.GetSQLDB()
+	todo := mysqldbmodel.Todo{}
 	db.First(&todo, input)
 
 	return &model.Todo{
@@ -72,5 +72,5 @@ type queryResolver struct{ *Resolver }
 //    it when you're done.
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
 var (
-	todos []dbmodel.Todo
+	todos []mysqldbmodel.Todo
 )

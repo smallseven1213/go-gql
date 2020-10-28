@@ -3,16 +3,17 @@ package main
 import (
 	"gql/graph"
 	"gql/graph/generated"
-	"gql/mysqldb/models"
+	mysqldbmodel "gql/mysqldb/model"
+	"gql/service"
 	"gql/utils"
-	"log"
 	"net/http"
-	"os"
 
 	"gorm.io/gorm"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/go-chi/chi"
+	"github.com/rs/cors"
 )
 
 func Migrate(db *gorm.DB) {
@@ -24,26 +25,31 @@ func Migrate(db *gorm.DB) {
 		db.AutoMigrate(&articles.ArticleUserModel{})
 		db.AutoMigrate(&articles.CommentModel{})
 	*/
-	db.AutoMigrate(&dbmodel.Todo{})
+	db.AutoMigrate(&mysqldbmodel.Todo{})
 }
 
 const defaultPort = "9090"
 
 func main() {
-	db := utils.Init()
+	db := utils.SQLDBInit()
 	Migrate(db)
-	// defer db.Close()
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
-	}
+	router := chi.NewRouter()
+	router.Use(service.Middleware())
+
+	router.Use(cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowCredentials: true,
+		Debug:            true,
+	}).Handler)
 
 	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
 
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
+	router.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	router.Handle("/query", srv)
 
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	err := http.ListenAndServe(":9090", router)
+	if err != nil {
+		panic(err)
+	}
 }
