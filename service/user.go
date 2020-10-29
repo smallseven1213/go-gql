@@ -8,12 +8,12 @@ import (
 func CreateUser(uid *string) {
 }
 
-func GetUserByUid(uid *string) *mysqldbmodel.User {
+func GetUserByUid(uid *string) (*mysqldbmodel.User, error) {
 	db := utils.GetSQLDB()
 
 	user := mysqldbmodel.User{}
 
 	db.Where(&mysqldbmodel.User{Uid: *uid}).First(&user)
 
-	return &user
+	return &user, nil
 }

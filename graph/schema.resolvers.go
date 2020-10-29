@@ -9,6 +9,7 @@ import (
 	"gql/graph/generated"
 	"gql/graph/model"
 	mysqldbmodel "gql/mysqldb/model"
+	"gql/service"
 	"gql/utils"
 	"strconv"
 )
@@ -54,6 +55,20 @@ func (r *queryResolver) Todo(ctx context.Context, input *string) (*model.Todo, e
 		Text: todo.Text,
 		Done: todo.Done,
 	}, nil
+}
+
+func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+	user := service.ForContext(ctx)
+	if user == nil {
+		return &model.User{}, nil
+	}
+	return &model.User{
+		ID: strconv.FormatUint(uint64(user.ID), 10),
+	}, nil
+}
+
+func (r *queryResolver) User(ctx context.Context, id *string) (*model.User, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 // Mutation returns generated.MutationResolver implementation.

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	mysqldbmodel "gql/mysqldb/model"
 	"gql/utils"
 	"net/http"
@@ -9,54 +10,55 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+type CustomerInfo struct {
+	Name string
+}
+
 type Claims struct {
 	Foo string `json:"foo"`
 	jwt.StandardClaims
+	CustomerInfo
 }
 
-var jwtSecret = []byte("secret")
+var (
+	jwtSecret  = []byte("secret")
+	userCtxKey = "user"
+)
 
 func Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			auth := r.Header.Get("Authorization")
-			token := strings.Split(auth, "Bearer ")[1]
+			if auth != "" {
+				token := strings.Split(auth, "Bearer ")[1]
 
-			tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (i interface{}, err error) {
-				return jwtSecret, nil
-			})
+				// --> 補上token是否在redis
+				tokenClaims, err := jwt.ParseWithClaims(token, &Claims{}, func(token *jwt.Token) (i interface{}, err error) {
+					return jwtSecret, nil
+				})
 
-			if err != nil || tokenClaims == nil {
-				next.ServeHTTP(w, r)
-				return
+				if tokenClaims != nil && err == nil {
+					claims := tokenClaims.Claims.(*Claims)
+
+					user, err := GetUserByUid(&claims.Id)
+
+					if user != nil && err == nil {
+						ctx := context.WithValue(r.Context(), userCtxKey, user)
+
+						// and call the next with our new context
+						r = r.WithContext(ctx)
+					}
+				}
 			}
-			/*
 
-				// Allow unauthenticated users in
-				if err != nil || c == nil {
-					next.ServeHTTP(w, r)
-					return
-				}
-
-				userId, err := validateAndGetUserID(c)
-				if err != nil {
-					http.Error(w, "Invalid cookie", http.StatusForbidden)
-					return
-				}
-
-				// get the user from the database
-				user := getUserByID(db, userId)
-
-				// put it in context
-				ctx := context.WithValue(r.Context(), userCtxKey, user)
-
-				// and call the next with our new context
-				r = r.WithContext(ctx)
-				next.ServeHTTP(w, r)
-			*/
-
+			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func ForContext(ctx context.Context) *mysqldbmodel.User {
+	raw, _ := ctx.Value(userCtxKey).(*mysqldbmodel.User)
+	return raw
 }
 
 func GetUserByToken(uid *string) *mysqldbmodel.User {
